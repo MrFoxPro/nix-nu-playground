@@ -42,24 +42,22 @@
           create_nu = name: script: "${pkgs.nuenv.mkScript {inherit name script;}}/bin/${name}";
           nu_bin = pkgs.nushell + "/bin/nu";
 
-          test_script = ''
+          test_script = let
+            cmd1 = "ls .vscode | print";
+            cmd2 = "ls .vscode | table | ansi strip | print";
+          in ''
             ${nu_bin} --version | print
             print $"Derivation script that runs in Nushell"
-            if ("DRV_SYSTEM" in $env) { print $"Building for system: ($env.DRV_SYSTEM)" }
-
+            
             def blue [msg: string] { $"(ansi blue)($msg)(ansi reset)" }
             blue "This text should be blue." | print
 
             print "Let's inspect command outputs:"
-            let commands = [
-              "ls -la"
-              "ls -la | table"
-              "ls -la | table | ansi strip"
-            ]
-            for cmd in $commands {
-              print $"> ($cmd)"
-              ${nu_bin} -c $cmd | print
-            }
+            ${cmd1}
+            ${nu_bin} -c "${cmd1}"
+
+            ${cmd2}
+            ${nu_bin} -c "${cmd2}"
           '';
 
           create_empty_out = ''
@@ -70,24 +68,7 @@
         in {
           _module.args = {inherit pkgs lib;};
 
-          packages.nuenv-drv = pkgs.nuenv.mkDerivation {
-            name = "nu-drv";
-            inherit system;
-            src = let _src = builtins.trace ./. ./.; in _src;
-
-            DRV_SYSTEM = system;
-
-            build = ''
-              print "BEFORE"
-              print ("NIX SANDBOX IS: " + $env.NIX_BUILD_TOP)
-              print ("NIX STORE IS: " + $env.NIX_STORE)
-              ${test_script}
-               print "AFTER"
-              ${create_empty_out}
-            '';
-          };
-
-          packages.stdenv-drv = pkgs.stdenv.mkDerivation {
+          packages.stdenv-drv = pkgs.stdenv.mkDerivation rec {
             pname = "stdenv-drv";
             version = "0.0.1";
             src = ./.;
@@ -95,40 +76,14 @@
             DRV_SYSTEM = system;
 
             buildPhase = create_nu "build-phase.nu" ''
-              print ("NIX SANDBOX IS: " + $env.NIX_BUILD_TOP)
-              print ("NIX STORE IS: " + $env.NIX_STORE)
+              print "=== ${pname} ==="
               ${test_script}
             '';
 
             installPhase = create_nu "install-phase.nu" ''
-              ${test_script}
               ${create_empty_out}
             '';
           };
-
-          packages.rust-drv = let
-            manifest = with builtins; fromTOML (readFile ./Cargo.toml);
-          in
-            pkgs.rustPlatform.buildRustPackage {
-              pname = "rust-drv";
-              version = manifest.package.version;
-              src = ./.;
-              doCheck = false;
-
-              DRV_SYSTEM = system;
-
-              buildPhase = create_nu "build-phase.nu" ''
-                ${test_script}
-              '';
-              installPhase = create_nu "install-phase.nu" ''
-                ${test_script}
-                ${create_empty_out}
-              '';
-              cargoLock = {
-                lockFile = ./Cargo.lock;
-                allowBuiltinFetchGit = true;
-              };
-            };
 
           devenv.shells.default = {
             name = "nushell-nix-shell";
