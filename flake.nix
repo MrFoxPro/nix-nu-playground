@@ -49,7 +49,8 @@
               "ls .vscode | table | ansi strip | print"
             ];
           in ''
-            print $"$TERM is ($env.TERM)"
+            print $"$env.TERM is ($env.TERM)"
+            if ("TERMINFO" in $env) { print $"$TERMINFO is ($env.TERMINFO)" }
             $"(ansi blue)('This text should be blue.')(ansi reset)" | print
             ${builtins.concatStringsSep "\n" cmds}
           '';
