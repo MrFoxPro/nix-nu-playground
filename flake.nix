@@ -43,21 +43,14 @@
           nu_bin = pkgs.nushell + "/bin/nu";
 
           test_script = let
-            cmd1 = "ls .vscode | print";
-            cmd2 = "ls .vscode | table | ansi strip | print";
+            cmds = [
+              "ls .vscode | print"
+              "ls -s .vscode | print"
+              "ls .vscode | table | ansi strip | print"
+            ];
           in ''
-            ${nu_bin} --version | print
-            print $"Derivation script that runs in Nushell"
-            
-            def blue [msg: string] { $"(ansi blue)($msg)(ansi reset)" }
-            blue "This text should be blue." | print
-
-            print "Let's inspect command outputs:"
-            ${cmd1}
-            ${nu_bin} -c "${cmd1}"
-
-            ${cmd2}
-            ${nu_bin} -c "${cmd2}"
+            $"(ansi blue)('This text should be blue.')(ansi reset)" | print
+            ${builtins.concatStringsSep "\n" cmds}
           '';
 
           create_empty_out = ''
@@ -67,6 +60,20 @@
           '';
         in {
           _module.args = {inherit pkgs lib;};
+
+          # packages.nuenv-drv = pkgs.nuenv.mkDerivation rec {
+          #   name = "nu-drv";
+          #   inherit system;
+          #   src = ./.;
+
+          #   DRV_SYSTEM = system;
+
+          #   build = ''
+          #     print "=== ${name} ==="
+          #     ${test_script}
+          #     ${create_empty_out}
+          #   '';
+          # };
 
           packages.stdenv-drv = pkgs.stdenv.mkDerivation rec {
             pname = "stdenv-drv";
