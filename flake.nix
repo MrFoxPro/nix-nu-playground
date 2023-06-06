@@ -49,6 +49,7 @@
               "ls .vscode | table | ansi strip | print"
             ];
           in ''
+            print $"$TERM is ($env.TERM)"
             $"(ansi blue)('This text should be blue.')(ansi reset)" | print
             ${builtins.concatStringsSep "\n" cmds}
           '';
