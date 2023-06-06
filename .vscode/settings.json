@@ -1,0 +1,12 @@
+{
+    "nix.serverSettings": {
+        // settings for 'nil' LSP
+        "nil": {
+            "formatting": {
+                "command": [
+                    "alejandra"
+                ]
+            }
+        }
+    },
+}
